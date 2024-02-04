@@ -1,12 +1,13 @@
-from tkinter import Tk, Button, Label, Entry
-from typing import Optional, Union, Callable
+from tkinter import Tk, Button, Label, Entry, Canvas, Frame
+from typing import Optional, Callable, Any
 from configparser import ConfigParser
 from pydantic import validate_call
 from threading import Thread
 import time
 
-from widget_grid_settings import WidgetGridSettings
-from _types import AnyWidget
+from ._utils import read_file, convert_value, parse_list, parse_tuple, compare_dicts
+from .widget_grid_settings import WidgetGridSettings
+from ._types import AnyWidget
 
 class NotFoundWidget(Exception): ...
 
@@ -14,12 +15,13 @@ ElementList = list[WidgetGridSettings]
 Listeners = dict[str, dict[str, list[Callable]]]
 
 class Window(Tk):
-    ACCEPTED_WIDGETS_WITH_STYLES: list[AnyWidget] = [ Button, Label, Entry ]
+    ACCEPTED_WIDGETS_WITH_STYLES: list[AnyWidget] = [ Button, Label, Entry, Canvas, Frame ]
     VALIDATE_CONFIG = dict(arbitrary_types_allowed = True)
 
     running = True
     styles_config = {}
     listeners: Listeners = {}
+    bound_handlers = {}
 
     @validate_call(config = VALIDATE_CONFIG)
     def __init__(
@@ -35,6 +37,10 @@ class Window(Tk):
         self.update_thread = Thread(target=self._update)
         self.after(500, lambda: self.update_thread.start())
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    @validate_call
+    def add_widget_with_style_cls(self, cls: Any) -> None:
+        self.ACCEPTED_WIDGETS_WITH_STYLES.append(cls)
 
     def _on_close(self) -> None:
         self.running = False
@@ -60,17 +66,6 @@ class Window(Tk):
     @validate_call(config = VALIDATE_CONFIG)
     def _set_widget_style(self, widget: AnyWidget, style: dict) -> None:
         widget.configure(**style)
-
-    @validate_call(config = VALIDATE_CONFIG)
-    def _read_file(
-        self,
-        file_path: str,
-        encoding: str = "utf-8"
-    ) -> str:
-        with open(file_path, encoding = encoding) as file:
-            content = file.read()
-        
-        return content
     
     def _parse_string_config(self, styles_text: str) -> dict:
         config = ConfigParser(
@@ -95,14 +90,16 @@ class Window(Tk):
         data = {}
 
         for option, value in config.items(section):
+            value = value.strip()
+
             if value.startswith("[") and value.endswith("]"):
-                data[option] = self._parse_list(value)
+                data[option] = parse_list(value)
 
             elif value.startswith("(") and value.endswith(")"):
-                data[option] = self._parse_tuple(value)
+                data[option] = parse_tuple(value)
 
             else:
-                data[option] = self._convert_value(value)
+                data[option] = convert_value(value)
 
         sub_sections = {}
 
@@ -122,36 +119,9 @@ class Window(Tk):
         return data
 
     @validate_call(config = VALIDATE_CONFIG)
-    def _convert_value(self, value: str) -> Union[str, int, float, bool, None]:
-        for converter in (int, float, self._to_bool):
-            try:
-                return converter(value)
-            except ValueError:
-                pass
-        
-        return value
-
-    @validate_call(config = VALIDATE_CONFIG)
-    def _parse_list(self, value: str) -> list[Union[str, int, float, bool, None]]:
-        elements = value[1:-1].split(",")
-        return [ self._convert_value(elem.strip()) for elem in elements ]
-
-    @validate_call(config = VALIDATE_CONFIG)
-    def _parse_tuple(self, value: str) -> tuple[Union[str, int, float, bool, None]]:
-        elements = value[1:-1].split(",")
-        return tuple(self._convert_value(elem.strip()) for elem in elements)
-
-    @validate_call(config = VALIDATE_CONFIG)
-    def _to_bool(self, value: str) -> bool:
-        value = value.lower().strip()
-        
-        if value in [ "true", "false" ]:
-            return value.lower() == "true"
-
-        raise ValueError(f"Invalid boolean value '{value}'")
-
-    @validate_call(config = VALIDATE_CONFIG)
     def use_styles_config(self, styles_config: dict) -> None:
+        if compare_dicts(styles_config, self.styles_config): return
+
         self.styles_config.update(styles_config)
 
         for widget_cls in self.ACCEPTED_WIDGETS_WITH_STYLES:
@@ -170,8 +140,8 @@ class Window(Tk):
         self.use_styles_config(styles_config)
 
     @validate_call(config = VALIDATE_CONFIG)
-    def use_styles_file(self, file_path: str) -> None:
-        styles_text = self._read_file(file_path)
+    def use_styles_file(self, file_path: str, encoding: str = "utf-8") -> None:
+        styles_text = read_file(file_path, encoding)
         self.use_styles(styles_text)
 
     def _update_styles(self) -> None:
@@ -187,9 +157,14 @@ class Window(Tk):
                 continue
 
             for event, handlers in events.items():
-                for handler in handlers:
-                    widget.bind(event, handler)
+                if event not in self.bound_handlers:
+                    self.bound_handlers[event] = set()
 
+                for handler in handlers:
+                    if handler not in self.bound_handlers[event]:
+                        print("Event: ", event, "Handler: ", handler)
+                        widget.bind(event, handler)
+                        self.bound_handlers[event].add(handler)
 
     def _update(self) -> None:
         while self.running:
@@ -234,8 +209,8 @@ class Window(Tk):
         self.use_widgets_config(widgets_config)
 
     @validate_call(config = VALIDATE_CONFIG)
-    def use_widgets_file(self, file_path: str) -> None:
-        widgets_text = self._read_file(file_path)
+    def use_widgets_file(self, file_path: str, encoding: str = "utf-8") -> None:
+        widgets_text = read_file(file_path, encoding)
         self.use_widgets(widgets_text)
 
     @validate_call(config = VALIDATE_CONFIG)
@@ -255,51 +230,11 @@ class Window(Tk):
 
         raise NotFoundWidget(f"Widget class not found for type: {widget_type}")
 
-    # def mainloop(self, n: int = 0) -> None:
-    #     self._update_styles()
-    #     return super().mainloop(n)
+    def clear(self) -> None:
+        for widget in self.winfo_children():
+            widget.destroy()
 
-
-def main() -> None:
-    window = Window()
-
-    window.title("Config Parser Example")
-    window.geometry("400x250")
-
-    window.use_styles_file("styles.ini")
-    window.use_widgets_file("widgets.ini")
-
-    # window.apply_custom_layout([
-    #     WidgetGridSettings(
-    #         widget = Button(
-    #             master = window,
-    #             text = "Bosta"
-    #         ),
-    #         row = 0,
-    #         column = 0,
-    #     ),
-    #     WidgetGridSettings(
-    #         widget = Label(
-    #             master = window,
-    #             text="Key: "
-    #         ),
-    #         row = 1,
-    #         column = 0,
-    #     ),
-    #     WidgetGridSettings(
-    #         widget =  Entry(master = window),
-    #         row = 0,
-    #         column = 1,
-    #     )
-    # ])
-
-    def handle_button_01_click(event) -> None:
-        print(event)
-        print("clicado")
-
-    window.add_event_listener("button_01", "<Button-1>", handle_button_01_click)
-
-    window.mainloop()
-
-if __name__ == "__main__":
-    main()
+    def mainloop(self, n: int = 0) -> None:
+        print("x")
+        self._update_styles()
+        return super().mainloop(n)

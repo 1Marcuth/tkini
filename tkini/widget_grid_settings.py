@@ -2,7 +2,7 @@ from typing import Optional, Union
 from pydantic import validate_call
 from tkinter import Tk
 
-from _types import AnyWidget
+from ._types import AnyWidget
 
 class WidgetGridSettings(dict):
     VALIDATE_CONFIG = dict(arbitrary_types_allowed = True)
