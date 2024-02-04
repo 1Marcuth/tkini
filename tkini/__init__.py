@@ -1,4 +1,3 @@
-from tkinter import Tk, Button, Label, Entry, Canvas, Frame
 from typing import Optional, Callable, Any
 from configparser import ConfigParser
 from pydantic import validate_call
@@ -7,6 +6,7 @@ import time
 
 from ._utils import read_file, convert_value, parse_list, parse_tuple, compare_dicts
 from .widget_grid_settings import WidgetGridSettings
+from .tkinter_widgets import *
 from ._types import AnyWidget
 
 class NotFoundWidget(Exception): ...
@@ -14,8 +14,49 @@ class NotFoundWidget(Exception): ...
 ElementList = list[WidgetGridSettings]
 Listeners = dict[str, dict[str, list[Callable]]]
 
+TKINTER_WIDGETS_CLS = [
+    Button,
+    Label,
+    Entry,
+    Canvas,
+    Frame,
+    LabelFrame,
+    Checkbutton,
+    Menu,
+    Listbox,
+    Menubutton,
+    Message,
+    OptionMenu,
+    Text,
+    Scrollbar,
+    Spinbox
+]
+
+TTK_WIDGETS_CLS = [
+    TtkButton,
+    TtkLabel,
+    TtkEntry,
+    Combobox,
+    TtkFrame,
+    TtkLabelFrame,
+    TtkCheckbutton,
+    TtkMenubutton,
+    TtkOptionMenu,
+    Notebook,
+    Panedwindow,
+    Progressbar,
+    Radiobutton,
+    Scale,
+    LabeledScale,
+    TtkScrollbar,
+    Spinbox,
+    Separator,
+    Sizegrip
+]
+
 class Window(Tk):
-    ACCEPTED_WIDGETS_WITH_STYLES: list[AnyWidget] = [ Button, Label, Entry, Canvas, Frame ]
+    ACCEPTED_WIDGETS_WITH_STYLES: list[AnyWidget] = []
+
     VALIDATE_CONFIG = dict(arbitrary_types_allowed = True)
 
     running = True
@@ -34,6 +75,8 @@ class Window(Tk):
         use: Optional[str] = None
     ) -> None:
         super().__init__(screenName, baseName, className, useTk, sync, use)
+        self.ACCEPTED_WIDGETS_WITH_STYLES.extend(TKINTER_WIDGETS_CLS)
+        self.ACCEPTED_WIDGETS_WITH_STYLES.extend(TTK_WIDGETS_CLS)
         self.update_thread = Thread(target=self._update)
         self.after(500, lambda: self.update_thread.start())
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -148,8 +191,6 @@ class Window(Tk):
         self.use_styles_config(self.styles_config)
 
     def _update_event_listeners(self) -> None:
-        print(self.listeners)
-
         for widget_id, events in self.listeners.items():
             widget = self.get_widget_by_id(widget_id)
 
@@ -162,7 +203,6 @@ class Window(Tk):
 
                 for handler in handlers:
                     if handler not in self.bound_handlers[event]:
-                        print("Event: ", event, "Handler: ", handler)
                         widget.bind(event, handler)
                         self.bound_handlers[event].add(handler)
 
@@ -184,8 +224,6 @@ class Window(Tk):
     @validate_call(config = VALIDATE_CONFIG)
     def use_widgets_config(self, widgets_config: dict) -> None:
         widgets_grid_settings = []
-
-        print(widgets_config)
 
         for widget_id, widget_config in widgets_config.items():
             widget_type = widget_config.pop("type")
@@ -235,6 +273,5 @@ class Window(Tk):
             widget.destroy()
 
     def mainloop(self, n: int = 0) -> None:
-        print("x")
         self._update_styles()
         return super().mainloop(n)

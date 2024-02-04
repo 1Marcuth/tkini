@@ -1,0 +1,40 @@
+from tkinter.ttk import (
+    Button as TtkButton,
+    Label as TtkLabel,
+    Entry as TtkEntry,
+    Combobox,
+    Frame as TtkFrame,
+    Labelframe as TtkLabelFrame,
+    Checkbutton as TtkCheckbutton,
+    Menubutton as TtkMenubutton,
+    OptionMenu as TtkOptionMenu,
+    Notebook,
+    Panedwindow,
+    Progressbar,
+    Radiobutton,
+    Scale,
+    LabeledScale,
+    Scrollbar as TtkScrollbar,
+    Spinbox,
+    Separator,
+    Sizegrip
+)
+
+from tkinter import (
+    Tk,
+    Button,
+    Label,
+    Entry,
+    Canvas, 
+    Frame,
+    LabelFrame,
+    Checkbutton,
+    Menu,
+    Listbox,
+    Menubutton, 
+    Message, 
+    OptionMenu,
+    Text,
+    Scrollbar,
+    Spinbox
+)
