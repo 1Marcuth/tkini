@@ -113,7 +113,7 @@ class Window(Tk):
     def _parse_string_config(self, styles_text: str) -> dict:
         config = ConfigParser(
             allow_no_value = False,
-            comment_prefixes = [ "//" ],
+            inline_comment_prefixes = [ "#" ],
             strict = False
         )
 
@@ -257,9 +257,9 @@ class Window(Tk):
             widget = widget_info.pop("widget")
             widget.grid(**widget_info)
 
-    @validate_call(config=VALIDATE_CONFIG)
+    @validate_call(config = VALIDATE_CONFIG)
     def _get_widget_class(self, widget_type: str) -> AnyWidget:
-        widget_cls_names = [widget_cls.__name__ for widget_cls in self.ACCEPTED_WIDGETS_WITH_STYLES]
+        widget_cls_names = [ widget_cls.__name__ for widget_cls in self.ACCEPTED_WIDGETS_WITH_STYLES ]
 
         if widget_type in widget_cls_names:
             widget_cls_index = widget_cls_names.index(widget_type)
@@ -273,5 +273,4 @@ class Window(Tk):
             widget.destroy()
 
     def mainloop(self, n: int = 0) -> None:
-        self._update_styles()
         return super().mainloop(n)

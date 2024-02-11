@@ -13,13 +13,13 @@ class WidgetGridSettings(dict):
         widget: AnyWidget,
         column: int,
         row: int,
-        column_span: Optional[int] = None,
+        columnspan: Optional[int] = None,
         in_: Optional[Union[AnyWidget, Tk]] = None,
         ipadx: Optional[int] = None,
         ipady: Optional[int] = None,
         padx: Optional[int] = None,
         pady: Optional[int] = None,
-        row_span: Optional[int] = None,
+        rowspan: Optional[int] = None,
         sticky: Optional[str] = None
     ) -> None:
         super().__init__()
@@ -27,8 +27,8 @@ class WidgetGridSettings(dict):
         self["column"] = column
         self["row"] = row
 
-        if column_span is not None:
-            self["columnspan"] = column_span
+        if columnspan is not None:
+            self["columnspan"] = columnspan
 
         if in_ is not None:
             self["in"] = in_
@@ -45,8 +45,8 @@ class WidgetGridSettings(dict):
         if pady is not None:
             self["pady"] = pady
 
-        if row_span is not None:
-            self["rowspan"] = row_span
+        if rowspan is not None:
+            self["rowspan"] = rowspan
 
         if sticky is not None:
             self["sticky"] = sticky
