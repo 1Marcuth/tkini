@@ -5,8 +5,8 @@ with open("README.md", "r", encoding = "utf-8") as file:
 
 setup(
     name = "tkini",
-    version = "0.1.4",
-    packages = find_packages(),
+    version = "0.3.0",
+    packages = ["tkini"] + [ "tkini/" + x for x in find_packages("tkini") ],
     install_requires = [ "pydantic" ],
     python_requires = ">=3.11",
     author = "Marcuth",
